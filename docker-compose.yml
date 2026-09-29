@@ -1,0 +1,46 @@
+services:
+
+  mongo:
+    image: mongo:5.0
+    container_name: library-mongo
+    volumes:
+      - library-mongo-data:/data/db
+    networks:
+      - library-network
+
+  backend:
+    build:
+      context: ./backend
+    container_name: library-backend
+    environment:
+      PORT: 5000
+      MONGO_URL: mongodb://mongo:27017/library
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+    networks:
+      - library-network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: http://localhost:5000/
+    container_name: library-frontend
+    environment:
+      HOST: 0.0.0.0
+      REACT_APP_API_URL: http://localhost:5000/
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - library-network
+
+volumes:
+  library-mongo-data:
+
+networks:
+  library-network:
+    driver: bridge
