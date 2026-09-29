@@ -1,0 +1,85 @@
+
+name: CI/CD Security Pipeline
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    name: Security Gates
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Install backend dependencies
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      # 4. Install frontend dependencies
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # ==========================================
+      # SECURITY GATE 1 - SEMGREP (SAST)
+      # ==========================================
+      - name: Semgrep SAST
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/javascript
+            p/typescript
+          auditOn: push
+
+      # ==========================================
+      # SECURITY GATE 2 - NPM AUDIT
+      # ==========================================
+      - name: npm audit - Backend
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+      - name: npm audit - Frontend
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+      # ==========================================
+      # SECURITY GATE 3 - GITLEAKS
+      # ==========================================
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ==========================================
+      # BUILD DOCKER IMAGE
+      # ==========================================
+      - name: Build Docker image
+        run: docker build -t library-management-system:latest .
+
+      # ==========================================
+      # SECURITY GATE 4 - TRIVY
+      # ==========================================
+      - name: Trivy Container Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: library-management-system:latest
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
