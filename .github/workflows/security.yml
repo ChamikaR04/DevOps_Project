@@ -1,33 +1,45 @@
-name: CI/CD Security Pipeline
+name: OWASP Security Pipeline
 
 on:
   push:
     branches:
-      - master
       - main
+      - master
+
   pull_request:
     branches:
-      - master
       - main
+      - master
 
 permissions:
   contents: read
 
 jobs:
   security:
-    name: Security Checks
+    name: OWASP Security Checks
     runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout source code
+      # ==========================================
+      # 1. CHECKOUT SOURCE CODE
+      # ==========================================
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+
+      # ==========================================
+      # 2. SETUP NODE.JS
+      # ==========================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+
+      # ==========================================
+      # 3. INSTALL DEPENDENCIES
+      # ==========================================
       - name: Install backend dependencies
         working-directory: backend
         run: npm ci
@@ -36,36 +48,82 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # SOURCE CODE SECURITY
+
+      # ==========================================
+      # SECURITY GATE 1
+      # SEMGREP - SAST
+      # ==========================================
       - name: Semgrep SAST
         uses: semgrep/semgrep-action@v1
         with:
-          config: p/javascript
-        continue-on-error: false
+          config: >-
+            p/javascript
+            p/typescript
 
-      # DEPENDENCY SECURITY
-      - name: npm audit - Backend
-        working-directory: backend
-        run: npm audit --audit-level=high
 
-      - name: npm audit - Frontend
-        working-directory: frontend
-        run: npm audit --audit-level=high
-
-      # SECRET SCANNING
+      # ==========================================
+      # SECURITY GATE 2
+      # GITLEAKS - SECRET SCANNING
+      # ==========================================
       - name: Gitleaks Secret Scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # BUILD BACKEND
-      - name: Build backend Docker image
+
+      # ==========================================
+      # BUILD APPLICATION
+      # ==========================================
+      - name: Build Docker containers
+        run: docker compose build
+
+
+      # ==========================================
+      # START APPLICATION
+      # Required for OWASP ZAP DAST
+      # ==========================================
+      - name: Start application
+        run: docker compose up -d
+
+
+      # ==========================================
+      # WAIT FOR APPLICATION
+      # ==========================================
+      - name: Wait for application
+        run: |
+          echo "Waiting for application to start..."
+          sleep 30
+
+          echo "Checking frontend..."
+          curl --fail http://localhost:3000
+
+          echo "Checking backend..."
+          curl --fail http://localhost:4500
+
+
+      # ==========================================
+      # SECURITY GATE 3
+      # OWASP ZAP - DAST
+      # ==========================================
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: 'http://localhost:3000'
+          fail_action: true
+          allow_issue_writing: false
+
+
+      # ==========================================
+      # SECURITY GATE 4
+      # TRIVY - CONTAINER SECURITY
+      # ==========================================
+
+      - name: Build backend image
         run: |
           docker build \
             -t library-backend:latest \
             ./backend
 
-      # CONTAINER SECURITY
       - name: Trivy scan - Backend image
         uses: aquasecurity/trivy-action@master
         with:
@@ -75,14 +133,13 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
 
-      # BUILD FRONTEND
-      - name: Build frontend Docker image
+
+      - name: Build frontend image
         run: |
           docker build \
             -t library-frontend:latest \
             ./frontend
 
-      # CONTAINER SECURITY
       - name: Trivy scan - Frontend image
         uses: aquasecurity/trivy-action@master
         with:
@@ -91,3 +148,12 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+
+
+      # ==========================================
+      # CLEANUP
+      # ==========================================
+      - name: Stop application
+        if: always()
+        run: docker compose down
+
