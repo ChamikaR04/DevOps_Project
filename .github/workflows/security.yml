@@ -21,15 +21,12 @@ jobs:
   sast-semgrep:
     runs-on: ubuntu-latest
     needs: build-and-test
+    container:
+      image: returntocorp/semgrep
     steps:
       - uses: actions/checkout@v4
-      - name: Run Semgrep (this gate genuinely blocks the pipeline)
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: >-
-            p/security-audit
-            p/owasp-top-ten
-            p/nodejsscan
+      - name: Run Semgrep (full scan, no baseline)
+        run: semgrep scan --config p/security-audit --config p/owasp-top-ten --config p/nodejsscan --error backend
 
   dependency-scan:
     runs-on: ubuntu-latest
