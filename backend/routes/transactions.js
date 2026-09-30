@@ -6,27 +6,49 @@ const router = express.Router()
 
 router.post("/add-transaction", async (req, res) => {
     try {
-        if (req.body.isAdmin === true) {
-            const newtransaction = await new BookTransaction({
-                bookId: req.body.bookId,
-                borrowerId: req.body.borrowerId,
-                bookName: req.body.bookName,
-                borrowerName: req.body.borrowerName,
-                transactionType: req.body.transactionType,
-                fromDate: req.body.fromDate,
-                toDate: req.body.toDate
-            })
-            const transaction = await newtransaction.save()
-            const book = Book.findById(req.body.bookId)
-            await book.updateOne({ $push: { transactions: transaction._id } })
-            res.status(200).json(transaction)
+        // Only authenticated administrators can add transactions
+        if (!req.user || req.user.isAdmin !== true) {
+            return res.status(403).json(
+                "You are not allowed to add a Transaction"
+            )
         }
-        else if (req.body.isAdmin === false) {
-            res.status(500).json("You are not allowed to add a Transaction")
+
+        const newtransaction = new BookTransaction({
+            bookId: req.body.bookId,
+            borrowerId: req.body.borrowerId,
+            bookName: req.body.bookName,
+            borrowerName: req.body.borrowerName,
+            transactionType: req.body.transactionType,
+            fromDate: req.body.fromDate,
+            toDate: req.body.toDate
+        })
+
+        const transaction = await newtransaction.save()
+
+        const book = await Book.findById(
+            req.body.bookId
+        )
+
+        if (!book) {
+            return res.status(404).json(
+                "Book not found"
+            )
         }
-    }
-    catch (err) {
-        res.status(504).json(err)
+
+        await book.updateOne({
+            $push: {
+                transactions: transaction._id
+            }
+        })
+
+        return res.status(200).json(transaction)
+
+    } catch (err) {
+        console.error("ADD TRANSACTION ERROR:", err)
+
+        return res.status(500).json(
+            "Internal server error"
+        )
     }
 })
 
@@ -42,31 +64,114 @@ router.get("/all-transactions", async (req, res) => {
 
 router.put("/update-transaction/:id", async (req, res) => {
     try {
-        if (req.body.isAdmin) {
-            await BookTransaction.findByIdAndUpdate(req.params.id, {
-                $set: req.body,
-            });
-            res.status(200).json("Transaction details updated successfully");
+        // Only authenticated administrators can update transactions
+        if (!req.user || req.user.isAdmin !== true) {
+            return res.status(403).json(
+                "Only administrators can update transactions"
+            )
         }
-    }
-    catch (err) {
-        res.status(504).json(err)
+
+        // Only allow legitimate transaction fields
+        const {
+            bookId,
+            borrowerId,
+            bookName,
+            borrowerName,
+            transactionType,
+            fromDate,
+            toDate
+        } = req.body
+
+        const updateData = {
+            bookId,
+            borrowerId,
+            bookName,
+            borrowerName,
+            transactionType,
+            fromDate,
+            toDate
+        }
+
+        const transaction =
+            await BookTransaction.findByIdAndUpdate(
+                req.params.id,
+                {
+                    $set: updateData
+                },
+                {
+                    new: true
+                }
+            )
+
+        if (!transaction) {
+            return res.status(404).json(
+                "Transaction not found"
+            )
+        }
+
+        return res.status(200).json(
+            "Transaction details updated successfully"
+        )
+
+    } catch (err) {
+        console.error(
+            "UPDATE TRANSACTION ERROR:",
+            err
+        )
+
+        return res.status(500).json(
+            "Internal server error"
+        )
     }
 })
 
 router.delete("/remove-transaction/:id", async (req, res) => {
-    if (req.body.isAdmin) {
-        try {
-            const data = await BookTransaction.findByIdAndDelete(req.params.id);
-            const book = Book.findById(data.bookId)
-            console.log(book)
-            await book.updateOne({ $pull: { transactions: req.params.id } })
-            res.status(200).json("Transaction deleted successfully");
-        } catch (err) {
-            return res.status(504).json(err);
+    try {
+        // Only authenticated administrators can delete transactions
+        if (!req.user || req.user.isAdmin !== true) {
+            return res.status(403).json(
+                "Only administrators can delete transactions"
+            )
         }
-    } else {
-        return res.status(403).json("You dont have permission to delete a book!");
+
+        const data =
+            await BookTransaction.findByIdAndDelete(
+                req.params.id
+            )
+
+        if (!data) {
+            return res.status(404).json(
+                "Transaction not found"
+            )
+        }
+
+        const book = await Book.findById(data.bookId)
+
+        if (!book) {
+            return res.status(404).json(
+                "Book not found"
+            )
+        }
+
+        await book.updateOne({
+            $pull: {
+                transactions: req.params.id
+            }
+        })
+
+        return res.status(200).json(
+            "Transaction deleted successfully"
+        )
+
+    } catch (err) {
+        console.error(
+            "DELETE TRANSACTION ERROR:",
+            err
+        )
+
+        return res.status(500).json(
+            "Internal server error"
+        )
     }
 })
 

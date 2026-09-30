@@ -37,27 +37,61 @@ router.post("/register", async (req, res) => {
 
 /* User Login */
 router.post("/signin", async (req, res) => {
-  try {
-    console.log(req.body, "req");
-    const user = req.body.admissionId
-      ? await User.findOne({
-          admissionId: req.body.admissionId,
-        })
-      : await User.findOne({
-          employeeId: req.body.employeeId,
-        });
+    try {
+        const { admissionId, employeeId, password } = req.body;
 
-    console.log(user, "user");
+        // Validate password type
+        if (typeof password !== "string") {
+            return res.status(400).json("Invalid password");
+        }
 
-    !user && res.status(404).json("User not found");
+        let user;
 
-    const validPass = await bcrypt.compare(req.body.password, user.password);
-    !validPass && res.status(400).json("Wrong Password");
+        if (admissionId !== undefined) {
+            // Prevent NoSQL operators such as {$ne: ...}
+            if (typeof admissionId !== "string") {
+                return res.status(400).json("Invalid admission ID");
+            }
 
-    res.status(200).json(user);
-  } catch (err) {
-    console.log(err);
-  }
+            user = await User.findOne({
+                admissionId: admissionId
+            });
+        }
+        else if (employeeId !== undefined) {
+            // Prevent NoSQL operators such as {$ne: ...}
+            if (typeof employeeId !== "string") {
+                return res.status(400).json("Invalid employee ID");
+            }
+
+            user = await User.findOne({
+                employeeId: employeeId
+            });
+        }
+        else {
+            return res.status(400).json(
+                "Admission ID or Employee ID is required"
+            );
+        }
+
+        if (!user) {
+            return res.status(404).json("User not found");
+        }
+
+        const validPass = await bcrypt.compare(password, user.password);
+
+        if (!validPass) {
+            return res.status(400).json("Wrong Password");
+        }
+
+        // Do not expose the password hash
+        const { password: _, ...safeUser } = user._doc;
+
+        return res.status(200).json(safeUser);
+
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json("Internal server error");
+    }
 });
 
 export default router;

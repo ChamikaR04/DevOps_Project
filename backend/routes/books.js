@@ -40,7 +40,7 @@ router.get("/", async (req, res) => {
 
 /* Adding book */
 router.post("/addbook", async (req, res) => {
-    if (req.body.isAdmin) {
+    if (req.user && req.user.isAdmin === true) {
         try {
             const newbook = await new Book({
                 bookName: req.body.bookName,
@@ -67,7 +67,7 @@ router.post("/addbook", async (req, res) => {
 
 /* Addding book */
 router.put("/updatebook/:id", async (req, res) => {
-    if (req.body.isAdmin) {
+    if (req.user && req.user.isAdmin === true) {
         try {
             await Book.findByIdAndUpdate(req.params.id, {
                 $set: req.body,
@@ -85,10 +85,13 @@ router.put("/updatebook/:id", async (req, res) => {
 
 /* Remove book  */
 router.delete("/removebook/:id", async (req, res) => {
-    if (req.body.isAdmin) {
+    if (req.user && req.user.isAdmin === true) {
         try {
             const _id = req.params.id
             const book = await Book.findOne({ _id })
+            if(book === null){
+                return res.status(404).json("Book not found");
+            }
             await book.remove()
             await BookCategory.updateMany({ '_id': book.categories }, { $pull: { books: book._id } });
             res.status(200).json("Book has been deleted");

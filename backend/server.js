@@ -17,6 +17,34 @@ const port = process.env.PORT || 4000;
 app.use(express.json());
 app.use(cors());
 
+// TEMPORARY TEST AUTHENTICATION - REMOVE AFTER TESTING
+app.use(async (req, res, next) => {
+    if (req.headers["x-test-admin"] === "E001") {
+        try {
+            const User = (await import("./models/User.js")).default;
+
+            const user = await User.findOne({ employeeId: "E001" });
+
+            if (!user) {
+                return res.status(401).json("Test admin not found");
+            }
+
+            req.user = {
+                id: user._id.toString(),
+                isAdmin: user.isAdmin
+            };
+
+            return next();
+        } catch (err) {
+            return res.status(500).json("Test authentication error");
+        }
+    }
+
+    next();
+});
+
+
+
 /* API Routes */
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -45,3 +73,7 @@ app.get("/", (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running in PORT ${port}`);
 });
+
+
+
+
