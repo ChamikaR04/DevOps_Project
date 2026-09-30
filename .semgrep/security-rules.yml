@@ -1,5 +1,8 @@
 rules:
 
+  # ---------------------------------------------------------
+  # 1. NoSQL Injection in Login
+  # ---------------------------------------------------------
   - id: library-no-direct-nosql-login-input
     languages:
       - javascript
@@ -20,6 +23,10 @@ rules:
                 ...
               })
 
+
+  # ---------------------------------------------------------
+  # 2. Client-Controlled Administrator Privilege
+  # ---------------------------------------------------------
   - id: library-client-controlled-admin
     languages:
       - javascript
@@ -38,6 +45,10 @@ rules:
                 ...
               }
 
+
+  # ---------------------------------------------------------
+  # 3. Password Disclosure
+  # ---------------------------------------------------------
   - id: library-password-disclosure
     languages:
       - javascript
@@ -55,6 +66,10 @@ rules:
           metavariable: $USERS
           regex: "users"
 
+
+  # ---------------------------------------------------------
+  # 4. Book Removal Without Null Check
+  # ---------------------------------------------------------
   - id: library-book-remove-without-null-check
     languages:
       - javascript
@@ -62,7 +77,7 @@ rules:
     message: >
       Book.remove() is called after a database lookup without an explicit
       missing-book check. Return 404 when the book does not exist.
-    pattern: |
-      const $BOOK = await Book.findOne(...);
-      ...
-      await $BOOK.remove()
+    patterns:
+      - pattern: |
+          const $BOOK = await Book.findOne(...);
+          await $BOOK.remove()
