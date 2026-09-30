@@ -44,6 +44,7 @@ jobs:
       - name: Semgrep Security Gate
         run: |
           semgrep scan \
+            --error \
             --config p/javascript \
             --config p/typescript \
             --config .semgrep/security-rules.yml \
