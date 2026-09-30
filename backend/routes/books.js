@@ -20,10 +20,15 @@ router.get("/allbooks", async (req, res) => {
 router.get("/getbook/:id", async (req, res) => {
     try {
         const book = await Book.findById(req.params.id).populate("transactions")
+
+        if (!book) {
+            return res.status(404).json("Book not found")
+        }
+
         res.status(200).json(book)
-    }
-    catch {
-        return res.status(500).json(err)
+
+    } catch (err) {
+        return res.status(400).json("Invalid book ID")
     }
 })
 
