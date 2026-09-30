@@ -38,13 +38,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci --no-audit --no-fund
+- name: Install backend dependencies
+  working-directory: backend
+  run: npm install --no-audit --no-fund
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci --no-audit --no-fund
+- name: Install frontend dependencies
+  working-directory: frontend
+  run: npm install --no-audit --no-fund
 
       - name: Audit backend dependencies
         working-directory: backend
