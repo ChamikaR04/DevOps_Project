@@ -29,7 +29,7 @@ router.get("/allmembers", async (req,res)=>{
         })
         res.status(200).json(safeUsers) 
     }
-    catch(err){
+    catch(err){afte
         return res.status(500).json(err);
     }
 })
