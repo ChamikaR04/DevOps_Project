@@ -21,37 +21,26 @@ jobs:
 
     steps:
 
-      # ==========================================
-      # 1. CHECKOUT
-      # ==========================================
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ==========================================
-      # 2. SETUP NODE
-      # ==========================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # ==========================================
-      # 3. INSTALL BACKEND DEPENDENCIES
-      # ==========================================
+      - name: Install Semgrep
+        run: |
+          python -m pip install semgrep
+
       - name: Install backend dependencies
         working-directory: backend
         run: npm ci
 
-      # ==========================================
-      # 4. INSTALL FRONTEND DEPENDENCIES
-      # ==========================================
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
-      # ==========================================
-      # 5. SAST SECURITY GATE
-      # ==========================================
       - name: Semgrep Security Gate
         run: |
           semgrep scan \
