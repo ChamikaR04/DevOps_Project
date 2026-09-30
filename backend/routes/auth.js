@@ -24,7 +24,7 @@ router.post("/register", async (req, res) => {
       mobileNumber: req.body.mobileNumber,
       email: req.body.email,
       password: hashedPass,
-      isAdmin: req.body.isAdmin,
+      isAdmin: false,
     });
 
     /* Save User and Return */
