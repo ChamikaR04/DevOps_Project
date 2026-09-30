@@ -16,13 +16,18 @@ router.get("/getuser/:id", async (req, res) => {
 })
 
 /* Getting all members in the library */
-router.get("/allmembers", async (req,res)=>{
-    try{
-        const users = await User.find({}).populate("activeTransactions").populate("prevTransactions").sort({_id:-1})
+router.get("/allmembers", async (req, res) => {
+    try {
+        const users = await User.find({})
+            .select("-password")
+            .populate("activeTransactions")
+            .populate("prevTransactions")
+            .sort({ _id: -1 })
+
         res.status(200).json(users)
-    }
-    catch(err){
-        return res.status(500).json(err);
+
+    } catch (err) {
+        return res.status(500).json("Unable to retrieve users");
     }
 })
 
