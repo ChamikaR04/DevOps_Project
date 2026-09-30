@@ -102,7 +102,7 @@ jobs:
           vuln-type: os,library
           severity: HIGH,CRITICAL
 
-    build:
+  build:
     name: Build and Test
     runs-on: ubuntu-latest
 
