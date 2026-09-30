@@ -1,6 +1,7 @@
 import express from "express";
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -37,27 +38,45 @@ router.post("/register", async (req, res) => {
 
 /* User Login */
 router.post("/signin", async (req, res) => {
-  try {
-    console.log(req.body, "req");
-    const user = req.body.admissionId
-      ? await User.findOne({
-          admissionId: req.body.admissionId,
-        })
-      : await User.findOne({
-          employeeId: req.body.employeeId,
+    try {
+        const user = req.body.admissionId
+            ? await User.findOne({ admissionId: req.body.admissionId })
+            : await User.findOne({ employeeId: req.body.employeeId });
+
+        if (!user) {
+            return res.status(404).json("User not found");
+        }
+
+        const validPass = await bcrypt.compare(
+            req.body.password,
+            user.password
+        );
+
+        if (!validPass) {
+            return res.status(400).json("Wrong Password");
+        }
+
+        const token = jwt.sign(
+            {
+                userId: user._id.toString(),
+                isAdmin: user.isAdmin === true
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "1h"
+            }
+        );
+
+        const { password, ...safeUser } = user._doc;
+
+        res.status(200).json({
+            ...safeUser,
+            token
         });
 
-    console.log(user, "user");
-
-    !user && res.status(404).json("User not found");
-
-    const validPass = await bcrypt.compare(req.body.password, user.password);
-    !validPass && res.status(400).json("Wrong Password");
-
-    res.status(200).json(user);
-  } catch (err) {
-    console.log(err);
-  }
+    } catch (err) {
+        console.log(err);
+        return res.status(500).json("Login failed");
+    }
 });
-
 export default router;
