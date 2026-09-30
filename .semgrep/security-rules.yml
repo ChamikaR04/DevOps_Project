@@ -1,0 +1,68 @@
+rules:
+
+  - id: library-no-direct-nosql-login-input
+    languages:
+      - javascript
+    severity: ERROR
+    message: >
+      Unvalidated request input is being passed directly into a MongoDB
+      authentication query. Validate the value as a string before querying.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              User.findOne({
+                admissionId: req.body.admissionId,
+                ...
+              })
+          - pattern: |
+              User.findOne({
+                employeeId: req.body.employeeId,
+                ...
+              })
+
+  - id: library-client-controlled-admin
+    languages:
+      - javascript
+    severity: ERROR
+    message: >
+      Authorization must not depend on client-controlled req.body.isAdmin.
+      Determine administrator privileges from the authenticated server-side user.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if (... || req.body.isAdmin) {
+                ...
+              }
+          - pattern: |
+              if (req.body.isAdmin) {
+                ...
+              }
+
+  - id: library-password-disclosure
+    languages:
+      - javascript
+    severity: ERROR
+    message: >
+      User records may expose password hashes. Do not return complete User
+      documents to API clients.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              res.status(...).json($USERS)
+          - pattern: |
+              res.json($USERS)
+      - metavariable-regex:
+          metavariable: $USERS
+          regex: "users"
+
+  - id: library-book-remove-without-null-check
+    languages:
+      - javascript
+    severity: ERROR
+    message: >
+      Book.remove() is called after a database lookup without an explicit
+      missing-book check. Return 404 when the book does not exist.
+    pattern: |
+      const $BOOK = await Book.findOne(...);
+      ...
+      await $BOOK.remove()

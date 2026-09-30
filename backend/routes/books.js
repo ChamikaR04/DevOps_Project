@@ -93,6 +93,7 @@ router.delete("/removebook/:id", async (req, res) => {
             await BookCategory.updateMany({ '_id': book.categories }, { $pull: { books: book._id } });
             res.status(200).json("Book has been deleted");
         } catch (err) {
+            console.error("BOOK DELETE ERROR: ", err);
             return res.status(504).json(err);
         }
     } else {
