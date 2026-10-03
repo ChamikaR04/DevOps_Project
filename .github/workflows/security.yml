@@ -1,0 +1,101 @@
+name: Secure CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # -----------------------------
+      # 1. Checkout source code
+      # -----------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      # -----------------------------
+      # 2. Setup Node.js
+      # -----------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+
+      # -----------------------------
+      # 3. Install dependencies
+      # -----------------------------
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+
+      # -----------------------------
+      # 4. npm audit
+      # -----------------------------
+      - name: npm audit - Backend
+        working-directory: backend
+        run: npm audit --audit-level=high || true
+
+      - name: npm audit - Frontend
+        working-directory: frontend
+        run: npm audit --audit-level=high || true
+
+
+      # -----------------------------
+      # 5. Gitleaks
+      # -----------------------------
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # -----------------------------
+      # 6. Semgrep SAST
+      # -----------------------------
+      - name: Semgrep SAST Scan
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/javascript
+            p/typescript
+            .semgrep/security-rules.yml
+
+
+      # -----------------------------
+      # 7. Build Docker image
+      # -----------------------------
+      - name: Build Backend Docker Image
+        run: |
+          docker build \
+            -t library-management-system-mern-backend:latest \
+            ./backend
+
+
+      # -----------------------------
+      # 8. Trivy Docker Image Scan
+      # -----------------------------
+      - name: Trivy Backend Image Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: library-management-system-mern-backend:latest
+          format: table
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: true
+          exit-code: '0'
