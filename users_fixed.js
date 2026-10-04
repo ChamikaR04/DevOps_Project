@@ -1,5 +1,6 @@
 import express from "express";
 import User from "../models/User.js";
+import bcrypt from "bcrypt";
 
 const router = express.Router()
 
@@ -16,6 +17,11 @@ router.get("/getuser/:id", async (req, res) => {
 })
 
 /* Getting all members in the library */
+// ============================================================================
+// VIVA FIX 1: Data Minimization / Masking Sensitive Fields
+// Solution: Used map() to remove password field from user objects, returning
+//           only safe user data (safeUsers) to prevent data leakage.
+// ============================================================================
 router.get("/allmembers", async (req,res)=>{
     try{
         const users = await User.find({})
@@ -29,15 +35,21 @@ router.get("/allmembers", async (req,res)=>{
         })
         res.status(200).json(safeUsers) 
     }
-    catch(err){afte
+    catch(err){
         return res.status(500).json(err);
     }
 })
 
 /* Update user by id */
+// ============================================================================
+// VIVA FIX 2: Server-side Authentication, Whitelisting & Secure Password Hashing
+// Solution 1: Verified user identity via server token (req.user), NOT req.body.
+// Solution 2: Whitelisted update fields in updateData to prevent mass assignment.
+// Solution 3: Hashes new passwords with bcrypt before saving to MongoDB.
+// ============================================================================
 router.put("/updateuser/:id", async (req, res) => {
     try {
-        // Authorization is based on authenticated server-side user
+        // Authorization is based on authenticated server-side user token
         const isOwnAccount = req.user && req.user.id === req.params.id
         const isAdmin = req.user && req.user.isAdmin === true
 
@@ -45,7 +57,7 @@ router.put("/updateuser/:id", async (req, res) => {
             return res.status(403).json("You can update only your account!")
         }
 
-        // Only allow approved fields to be updated
+        // Only allow approved fields to be updated (Whitelisting)
         const {
             userFullName,
             age,
@@ -96,6 +108,11 @@ router.put("/updateuser/:id", async (req, res) => {
 })
 
 /* Adding transaction to active transactions list */
+// ============================================================================
+// VIVA FIX 3: Server-side Admin Role Verification
+// Solution: Admin status is verified using req.user.isAdmin from server auth
+//           middleware (JWT/session), preventing client-side spoofing.
+// ============================================================================
 router.put("/:id/move-to-activetransactions", async (req, res) => {
     try {
         // Only authenticated administrators can perform this operation
@@ -134,6 +151,11 @@ router.put("/:id/move-to-activetransactions", async (req, res) => {
 })
 
 /* Adding transaction to previous transactions list and removing from active transactions list */
+// ============================================================================
+// VIVA FIX 4: Secure Transaction Relocation
+// Solution: Relies on server-validated req.user token to ensure only legitimate
+//           admin users can move transactions.
+// ============================================================================
 router.put("/:id/move-to-prevtransactions", async (req, res) => {
     try {
         // Only authenticated administrators can perform this operation
@@ -180,6 +202,11 @@ router.put("/:id/move-to-prevtransactions", async (req, res) => {
 })
 
 /* Delete user by id */
+// ============================================================================
+// VIVA FIX 5: Protected Account Deletion
+// Solution: Deletion privileges checked strictly against req.user.id and
+//           req.user.isAdmin, preventing unauthorized account deletion.
+// ============================================================================
 router.delete("/deleteuser/:id", async (req, res) => {
     try {
         // Determine identity from authenticated user
