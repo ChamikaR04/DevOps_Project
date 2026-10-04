@@ -1,6 +1,5 @@
 import express from "express";
 import User from "../models/User.js";
-import bcrypt from "bcrypt";
 
 const router = express.Router()
 
@@ -30,7 +29,7 @@ router.get("/allmembers", async (req,res)=>{
         })
         res.status(200).json(safeUsers) 
     }
-    catch(err){
+    catch(err){afte
         return res.status(500).json(err);
     }
 })
