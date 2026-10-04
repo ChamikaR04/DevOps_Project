@@ -16,11 +16,6 @@ router.get("/getuser/:id", async (req, res) => {
 })
 
 /* Getting all members in the library */
-// ============================================================================
-// VP: Password Disclosure Vulnerability (Sensitive Data Exposure)
-// Problem: Returns complete user objects including password hashes in JSON.
-// Risk: Anyone calling /allmembers can leak all member passwords.
-// ============================================================================
 router.get("/allmembers", async (req,res)=>{
     try{
         const users = await User.find({}).populate("activeTransactions").populate("prevTransactions").sort({_id:-1})

@@ -17,11 +17,7 @@ router.get("/getuser/:id", async (req, res) => {
 })
 
 /* Getting all members in the library */
-// ============================================================================
-// VP: Password Disclosure Fix (Data Masking)
-// Solution: Used map() to remove password field from user objects, returning
-//           only safeUsers to prevent password disclosure.
-// ============================================================================
+// Remove password hashes from response
 router.get("/allmembers", async (req,res)=>{
     try{
         const users = await User.find({})
