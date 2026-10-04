@@ -18,8 +18,9 @@ router.get("/getuser/:id", async (req, res) => {
 
 /* Getting all members in the library */
 // ============================================================================
-// VP 1: Data Minimization / Masking Sensitive Fields
-// Fix: Used map() to remove password field, returning safeUsers only.
+// VP: Password Disclosure Fix (Data Masking)
+// Solution: Used map() to remove password field from user objects, returning
+//           only safeUsers to prevent password disclosure.
 // ============================================================================
 router.get("/allmembers", async (req,res)=>{
     try{
@@ -40,12 +41,6 @@ router.get("/allmembers", async (req,res)=>{
 })
 
 /* Update user by id */
-// ============================================================================
-// VP 2: Server-Side Auth, Field Whitelisting & Password Hashing
-// Fix 1: Verified identity via server token (req.user), NOT req.body.
-// Fix 2: Whitelisted update fields in updateData to block mass assignment.
-// Fix 3: Hashes new passwords with bcrypt before saving to DB.
-// ============================================================================
 router.put("/updateuser/:id", async (req, res) => {
     try {
         // Authorization is based on authenticated server-side user token
@@ -107,10 +102,6 @@ router.put("/updateuser/:id", async (req, res) => {
 })
 
 /* Adding transaction to active transactions list */
-// ============================================================================
-// VP 3: Server-Side Admin Role Verification
-// Fix: Verified req.user.isAdmin from server auth token/JWT middleware.
-// ============================================================================
 router.put("/:id/move-to-activetransactions", async (req, res) => {
     try {
         // Only authenticated administrators can perform this operation
@@ -149,10 +140,6 @@ router.put("/:id/move-to-activetransactions", async (req, res) => {
 })
 
 /* Adding transaction to previous transactions list and removing from active transactions list */
-// ============================================================================
-// VP 4: Secure Transaction Relocation
-// Fix: Relies on server-validated req.user token for admin updates.
-// ============================================================================
 router.put("/:id/move-to-prevtransactions", async (req, res) => {
     try {
         // Only authenticated administrators can perform this operation
@@ -199,10 +186,6 @@ router.put("/:id/move-to-prevtransactions", async (req, res) => {
 })
 
 /* Delete user by id */
-// ============================================================================
-// VP 5: Protected Account Deletion
-// Fix: Deletion allowed strictly via verified req.user identity.
-// ============================================================================
 router.delete("/deleteuser/:id", async (req, res) => {
     try {
         // Determine identity from authenticated user
