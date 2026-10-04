@@ -18,9 +18,8 @@ router.get("/getuser/:id", async (req, res) => {
 
 /* Getting all members in the library */
 // ============================================================================
-// VIVA FIX 1: Data Minimization / Masking Sensitive Fields
-// Solution: Used map() to remove password field from user objects, returning
-//           only safe user data (safeUsers) to prevent data leakage.
+// VP 1: Data Minimization / Masking Sensitive Fields
+// Fix: Used map() to remove password field, returning safeUsers only.
 // ============================================================================
 router.get("/allmembers", async (req,res)=>{
     try{
@@ -42,10 +41,10 @@ router.get("/allmembers", async (req,res)=>{
 
 /* Update user by id */
 // ============================================================================
-// VIVA FIX 2: Server-side Authentication, Whitelisting & Secure Password Hashing
-// Solution 1: Verified user identity via server token (req.user), NOT req.body.
-// Solution 2: Whitelisted update fields in updateData to prevent mass assignment.
-// Solution 3: Hashes new passwords with bcrypt before saving to MongoDB.
+// VP 2: Server-Side Auth, Field Whitelisting & Password Hashing
+// Fix 1: Verified identity via server token (req.user), NOT req.body.
+// Fix 2: Whitelisted update fields in updateData to block mass assignment.
+// Fix 3: Hashes new passwords with bcrypt before saving to DB.
 // ============================================================================
 router.put("/updateuser/:id", async (req, res) => {
     try {
@@ -109,9 +108,8 @@ router.put("/updateuser/:id", async (req, res) => {
 
 /* Adding transaction to active transactions list */
 // ============================================================================
-// VIVA FIX 3: Server-side Admin Role Verification
-// Solution: Admin status is verified using req.user.isAdmin from server auth
-//           middleware (JWT/session), preventing client-side spoofing.
+// VP 3: Server-Side Admin Role Verification
+// Fix: Verified req.user.isAdmin from server auth token/JWT middleware.
 // ============================================================================
 router.put("/:id/move-to-activetransactions", async (req, res) => {
     try {
@@ -152,9 +150,8 @@ router.put("/:id/move-to-activetransactions", async (req, res) => {
 
 /* Adding transaction to previous transactions list and removing from active transactions list */
 // ============================================================================
-// VIVA FIX 4: Secure Transaction Relocation
-// Solution: Relies on server-validated req.user token to ensure only legitimate
-//           admin users can move transactions.
+// VP 4: Secure Transaction Relocation
+// Fix: Relies on server-validated req.user token for admin updates.
 // ============================================================================
 router.put("/:id/move-to-prevtransactions", async (req, res) => {
     try {
@@ -203,9 +200,8 @@ router.put("/:id/move-to-prevtransactions", async (req, res) => {
 
 /* Delete user by id */
 // ============================================================================
-// VIVA FIX 5: Protected Account Deletion
-// Solution: Deletion privileges checked strictly against req.user.id and
-//           req.user.isAdmin, preventing unauthorized account deletion.
+// VP 5: Protected Account Deletion
+// Fix: Deletion allowed strictly via verified req.user identity.
 // ============================================================================
 router.delete("/deleteuser/:id", async (req, res) => {
     try {

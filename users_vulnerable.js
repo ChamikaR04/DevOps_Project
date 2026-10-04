@@ -17,9 +17,9 @@ router.get("/getuser/:id", async (req, res) => {
 
 /* Getting all members in the library */
 // ============================================================================
-// VIVA POINT 1: Sensitive Data Exposure (OWASP A02:2021)
-// Problem: Sends the complete user object (including hashed passwords) in JSON.
-// Risk: Anyone calling /allmembers can leak all user passwords.
+// VP 1: Sensitive Data Exposure (OWASP A02:2021)
+// Problem: Sends complete user objects with password hashes in JSON.
+// Risk: Anyone calling /allmembers can leak user passwords.
 // ============================================================================
 router.get("/allmembers", async (req,res)=>{
     try{
@@ -33,10 +33,9 @@ router.get("/allmembers", async (req,res)=>{
 
 /* Update user by id */
 // ============================================================================
-// VIVA POINT 2: Broken Access Control & Mass Assignment (OWASP A01 / CWE-915)
-// Problem 1: Client body payload (req.body.isAdmin) is trusted for authorization.
-//            An attacker can pass { "isAdmin": true } to gain admin privileges.
-// Problem 2: $set: req.body updates all fields blindly without filtering.
+// VP 2: Broken Access Control & Mass Assignment (OWASP A01 / CWE-915)
+// Problem 1: Client body payload (req.body.isAdmin) is trusted for auth.
+// Problem 2: $set: req.body updates all schema fields without filtering.
 // ============================================================================
 router.put("/updateuser/:id", async (req, res) => {
     if (req.body.userId === req.params.id || req.body.isAdmin) {
@@ -64,9 +63,8 @@ router.put("/updateuser/:id", async (req, res) => {
 
 /* Adding transaction to active transactions list */
 // ============================================================================
-// VIVA POINT 3: Privilege Escalation via Untrusted Client Input
-// Problem: Checks if(req.body.isAdmin). Any user can send { "isAdmin": true }
-//          in request body to perform admin actions.
+// VP 3: Privilege Escalation via Untrusted Client Input
+// Problem: Checks if(req.body.isAdmin). Normal users can send isAdmin: true.
 // ============================================================================
 router.put("/:id/move-to-activetransactions" , async (req,res)=>{
     if(req.body.isAdmin){
@@ -86,9 +84,8 @@ router.put("/:id/move-to-activetransactions" , async (req,res)=>{
 
 /* Adding transaction to previous transactions list and removing from active transactions list */
 // ============================================================================
-// VIVA POINT 4: Untrusted Auth Flag in Request Payload
-// Problem: Admin status is checked from unverified req.body instead of
-//          authenticated server session or JWT token.
+// VP 4: Untrusted Auth Flag in Request Payload
+// Problem: Admin status checked from unverified req.body instead of server token.
 // ============================================================================
 router.put("/:id/move-to-prevtransactions", async (req,res)=>{
     if(req.body.isAdmin){
@@ -109,9 +106,8 @@ router.put("/:id/move-to-prevtransactions", async (req,res)=>{
 
 /* Delete user by id */
 // ============================================================================
-// VIVA POINT 5: Unauthorized Account Deletion
-// Problem: Attacker can spoof req.body.userId or req.body.isAdmin to delete
-//          any user account in the database.
+// VP 5: Unauthorized Account Deletion
+// Problem: Attacker can spoof req.body.userId or req.body.isAdmin to delete users.
 // ============================================================================
 router.delete("/deleteuser/:id", async (req, res) => {
     if (req.body.userId === req.params.id || req.body.isAdmin) {
